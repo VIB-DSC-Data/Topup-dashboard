@@ -1,0 +1,233 @@
+### Transaction frequency
+
+```{r}
+tmp <-before %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>%  
+                group_by(TIME) %>% 
+                summarise(TF = n())
+tmp_ <- after %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>%  
+                group_by(TIME) %>% 
+                summarise(TF = n())
+
+p1 <- ggplot() + 
+geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = TF, group = 1, color = 'Before campaign'), size = 1) +
+geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = TF, group = 1, color = 'Before campaign'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = TF, group = 1, color = 'During campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = TF, group = 1, color = 'During campaign-Selected'), size = 5) +
+scale_y_continuous(labels = comma) +
+labs(x = 'Month', y = 'Transaction frequency', caption = 'Based on predicted segment only') +
+theme_wsj() +
+scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
+# theme(legend.title = element_blank(), legend.position = 'bottom', axis.title.y= element_text())
+theme(legend.title = element_blank(), legend.position = 'bottom',axis.title.y= element_text(), axis.text=element_text(size=12),
+      axis.title=element_text(size=14,face="bold"), plot.caption = element_text(size = 10, face = 'italic'),
+      legend.text = element_text(size = 6),panel.background = element_rect(fill = 'white'), plot.background = element_rect(fill = 'white'),
+      legend.background = element_rect(fill = 'white'))
+p1
+
+```
+
+### Average transaction frequency per customer
+
+```{r}
+
+tmp <-before %>% 
+      mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>%  group_by(TIME , CLIENT_NO) %>% summarise(n = n()) %>% group_by(TIME) %>% summarise(ATF = mean(n))
+tmp_ <-after  %>% 
+      mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>%  group_by(TIME , CLIENT_NO) %>% summarise(n = n()) %>% group_by(TIME) %>% summarise(ATF = mean(n))
+p2 <- ggplot() + 
+geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 1) +
+geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 5) +
+labs(x = 'Month', y = 'Average transaction frequency') +
+theme_wsj() +
+scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
+theme(legend.position = 'none',axis.title.y= element_text(), axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),
+      panel.background = element_rect(fill = 'white'), plot.background = element_rect(fill = 'white'))
+p2 
+
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Average elapse between consecutive transactions
+```{r}
+tmp <- before %>% 
+            mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+            group_by(TIME, CLIENT_NO) %>%
+            arrange(TRAN_DATE, .by_group = TRUE) %>% 
+            mutate(LAG_TRAN_DATE = lag(TRAN_DATE)) %>% 
+            mutate(DIFF = as.numeric(TRAN_DATE - LAG_TRAN_DATE)) %>% 
+            group_by(TIME) %>% summarise(DIFF = mean(DIFF, na.rm = TRUE))
+
+tmp_ <-after  %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        group_by(TIME, CLIENT_NO) %>%
+            arrange(TRAN_DATE, .by_group = TRUE) %>% 
+            mutate(LAG_TRAN_DATE = lag(TRAN_DATE)) %>% 
+            mutate(DIFF = as.numeric(TRAN_DATE - LAG_TRAN_DATE)) %>% 
+            group_by(TIME) %>% summarise(DIFF = mean(DIFF, na.rm = TRUE))
+
+
+p3 <- ggplot() + 
+geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = DIFF, group = 1, color = 'Before campaign'), size = 1) +
+geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = DIFF, group = 1, color = 'Before campaign'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = DIFF, group = 1, color = 'During campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = DIFF, group = 1, color = 'During campaign-Selected'), size = 5) +
+labs(x = 'Month', y = 'Average elapse (days)') +
+theme_wsj() +
+scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
+theme(legend.position = 'none',axis.title.y= element_text(), axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),
+      panel.background = element_rect(fill = 'white'), plot.background = element_rect(fill = 'white'))
+p3 
+```
+
+### Average elapse between consecutive transactions per cust
+
+```{r}
+tmp_func <- function(vec) {
+    if (length(vec) > 1){
+        return(as.numeric(mean(diff(vec[order(vec)]))))
+    } else {
+        return(NA)
+    }
+}
+tmp <-before %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        # group_by(TIME,CLIENT_NO, TRAN_DATE) %>% 
+        # arrange(TRAN_DATE) %>% 
+        group_by(TIME, CLIENT_NO) %>% 
+        summarise(Dif = tmp_func(TRAN_DATE)) %>%
+        group_by(TIME) %>%
+        summarise(ADif = mean(Dif, na.rm = TRUE))
+
+tmp_ <-after  %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        # group_by(TIME,CLIENT_NO, TRAN_DATE) %>% 
+        # arrange(TRAN_DATE) %>% 
+        group_by(TIME, CLIENT_NO) %>% 
+        summarise(Dif = tmp_func(TRAN_DATE)) %>%
+        group_by(TIME) %>%
+        summarise(ADif = mean(Dif, na.rm = TRUE))
+p4 <- ggplot() + 
+geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ADif, group = 1, color = 'Before campaign'), size = 1) +
+geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ADif, group = 1, color = 'Before campaign'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ADif, group = 1, color = 'During campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ADif, group = 1, color = 'During campaign-Selected'), size = 5) +
+labs(x = 'Month', y = 'Average elapse per cust (days)') +
+theme_wsj() +
+scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
+theme(legend.position = 'none',axis.title.y= element_text(), axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),
+      panel.background = element_rect(fill = 'white'), plot.background = element_rect(fill = 'white'))
+p4 
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Topup Amount
+
+```{r}
+tmp <-before %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        group_by(TIME) %>% 
+                summarise(ATF = sum(TRAN_AMOUNT)/10^9)
+
+tmp_ <-after  %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        group_by(TIME) %>% 
+                summarise(ATF = sum(TRAN_AMOUNT)/10^9)
+
+ggplot() + 
+geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 1) +
+geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 5) +
+labs(x = 'Month', y = 'Topup amount (B)') +
+theme_wsj() +
+scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
+theme(legend.position = 'none',axis.title.y= element_text(), axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),
+      panel.background = element_rect(fill = 'white'), plot.background = element_rect(fill = 'white'))
+```
+
+
+### Average Topup Amount per cust
+
+```{r}
+tmp <-before %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        group_by(TIME , CLIENT_NO) %>% summarise(n = sum(TRAN_AMOUNT)/10^3) %>% group_by(TIME) %>% summarise(ATF = mean(n))
+tmp_ <-after  %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        group_by(TIME , CLIENT_NO) %>% summarise(n = sum(TRAN_AMOUNT)/10^3) %>% group_by(TIME) %>% summarise(ATF = mean(n))
+# tmp <- df %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>%  group_by(TIME , CLIENT_NO) %>% summarise(n = sum(TRAN_AMOUNT)/10^3) %>% group_by(TIME) %>% summarise(ATF = mean(n))
+
+ggplot() + 
+geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 1) +
+geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 5) +
+labs(x = 'Month', y = 'Average Topup amount per cust (K)') +
+theme_wsj() +
+scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
+theme(legend.position = 'none',axis.title.y= element_text(), axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),
+      panel.background = element_rect(fill = 'white'), plot.background = element_rect(fill = 'white'))
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Wonback Ratio
+
+```{r}
+tmp <-before %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        group_by(TIME, CLIENT_NO) %>%
+            summarise(Total = n(), Subtotal = n()-1) %>%
+            mutate(WR = Subtotal / Total) %>% group_by(TIME) %>% summarise(WR = mean(WR))
+tmp_ <-after  %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        group_by(TIME, CLIENT_NO) %>%
+            summarise(Total = n(), Subtotal = n()-1) %>%
+            mutate(WR = Subtotal / Total) %>% group_by(TIME) %>% summarise(WR = mean(WR))
+
+ggplot() + 
+geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = WR, group = 1, color = 'Before campaign'), size = 1) +
+geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = WR, group = 1, color = 'Before campaign'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = WR, group = 1, color = 'During campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = WR, group = 1, color = 'During campaign-Selected'), size = 5) +
+labs(x = 'Month', y = 'Wonback ratio') +
+theme_wsj() +
+scale_color_manual(values = c('#FFC074','#B6C867','#01937C','black')) + 
+theme(legend.position = 'none',axis.title.y= element_text(), axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),
+      panel.background = element_rect(fill = 'white'), plot.background = element_rect(fill = 'white'))
+
+```
+
+### Acquisition performance
+
+```{r}
+tmp <-before %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        group_by(TIME, CLIENT_NO) %>% 
+                summarise(first = min(TRAN_DATE))
+tmp_ <-after  %>% mutate(TIME = format(TRAN_DATE, "%Y-%m")) %>% 
+        group_by(TIME, CLIENT_NO) %>% 
+                summarise(first = min(TRAN_DATE))
+
+tmp <- left_join(tmp, df %>% select(CLIENT_NO, IB_REGISTERED_DATE2) %>% unique())
+tmp <- tmp %>% ungroup() %>% mutate(Ratio = as.numeric(first - cam_date) / as.numeric(first - IB_REGISTERED_DATE2))
+tmp <- tmp %>% filter(!is.na(tmp),!is.infinite(Ratio)) %>% group_by(TIME) %>% summarise(Ratio = mean(Ratio, na.rm = TRUE))
+
+
+tmp_ <- left_join(tmp_, df %>% select(CLIENT_NO, IB_REGISTERED_DATE2) %>% unique())
+tmp_ <- tmp_ %>% ungroup() %>% mutate(Ratio = as.numeric(first - cam_date) / as.numeric(first - IB_REGISTERED_DATE2))
+tmp_ <- tmp_ %>% filter(!is.na(tmp_),!is.infinite(Ratio)) %>% group_by(TIME) %>% summarise(Ratio = mean(Ratio, na.rm = TRUE))
+
+
+ggplot() + 
+geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = Ratio, group = 1, color = 'Before campaign'), size = 1) +
+geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = Ratio, group = 1, color = 'Before campaign'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = Ratio, group = 1, color = 'During campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = Ratio, group = 1, color = 'During campaign-Selected'), size = 5) +
+geom_hline(aes(yintercept = 1, color = "Line"), linetype = 'dashed') +
+# geom_segment(aes(x = '2022-09', xend = '2022-11',y=1, yend = 1, color = 'Line'), linetype = 'dashed') +
+geom_text(aes(x = '2022-07', y = 1, label = 'Acquisition line', color = 'Line'), vjust = 2) +
+labs(x = 'Month', y = 'Acquisition performance') +
+theme_wsj() +
+scale_color_manual(values = c('#FFC074','#B6C867','#01937C','black')) + 
+theme(legend.position = 'none',axis.title.y= element_text(), axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"),
+      panel.background = element_rect(fill = 'white'), plot.background = element_rect(fill = 'white'))
+```
