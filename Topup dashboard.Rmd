@@ -7,7 +7,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-pacman::p_load(flexdashboard,tidyverse, reshape2, scales, ggthemes, ggalluvial)
+pacman::p_load(tidyverse, reshape2, scales, ggthemes, plotly, ggpubr, ggalluvial,RColorBrewer, ggrepel)
 
 df <- read.csv('MB2_TOPUP_MOBILE.csv', sep = "|")
 df <- df %>% mutate_at(vars(contains('DATE')), ~(as.Date(., '%m/%d/%Y')))
@@ -319,7 +319,41 @@ theme(legend.position = 'none',axis.title.y= element_text(), axis.text=element_t
 
 ```
 
-###
+### Topup Acceleration
+
+```{r}
+after2 <- after %>% filter(IB_REGISTERED_DATE2 >= cam_date) %>% filter(CLIENT_NO %in% both) %>%
+        group_by(CLIENT_NO) %>% 
+        summarise(first = min(TRAN_DATE), IB_REGISTERED_DATE2 = mean(IB_REGISTERED_DATE2), freq = n(), amt = mean(TRAN_AMOUNT)) %>% 
+        ungroup() %>%
+        mutate(State0 = case_when(CLIENT_NO %in% client_nos ~ 'Selected', CLIENT_NO %in% non_client_nos ~ 'Non-selected'),
+                State1 = case_when(IB_REGISTERED_DATE2 == cam_date ~ 'Open = Campaign ', IB_REGISTERED_DATE2 > cam_date ~ 'Open > Campaign', TRUE ~ 'Open < Campaign'),
+                 State2 = case_when(freq > 1 ~ 'Wonback', freq <= 1 ~ 'Only 1 time Tranx')) %>%
+        group_by(State0,State1,State2) %>%
+        summarise(Freq = n()) %>%
+        mutate_if(is.character, as.factor)
+ggplot(after2, aes(y = Freq, axis1 = State0, axis2 = State1, axis3 = State2)) +
+  geom_alluvium(aes(fill = State0), width = 0) +
+  geom_stratum(width = 1/12, aes(fill = State0), color = "black") +
+  geom_text_repel(stat = "stratum", aes(label = paste(after_stat(stratum),'\n',percent(after_stat(prop), accuracy = .1))), size = 3, hjust = 1.5, color = 'red') +
+  geom_text_repel(stat = "alluvium", aes(label = percent(after_stat(prop), accuracy = .1)), size = 2) +
+  scale_x_discrete(limits = c("State1", "State2"), expand = c(.1, .1,.1,.1)) +
+  scale_fill_manual(values = colorRampPalette(brewer.pal(name="Dark2", n = 8))(15)) +
+  theme_wsj() +
+  theme(axis.line=element_blank(),
+      axis.text.x=element_blank(),
+      axis.text.y=element_blank(),
+      axis.ticks.x=element_blank(),
+      axis.ticks.y=element_blank(),
+      axis.title.x=element_blank(),
+      axis.title.y=element_blank(),
+      legend.position="none",
+      panel.background=element_blank(),
+      panel.grid.major=element_blank(),
+      panel.grid.minor=element_blank(), 
+      plot.background = element_rect(fill = 'white'))
+
+```
 
 Row
 -----------------------------------------------------------------------
