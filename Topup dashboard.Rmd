@@ -9,8 +9,8 @@ output:
 ```{r setup, include=FALSE}
 pacman::p_load(tidyverse, reshape2, scales, ggthemes, plotly, ggpubr, ggalluvial,RColorBrewer, ggrepel)
 
-df <- read.csv('MB2_TOPUP_MOBILE.csv', sep = "|")
-df <- df %>% mutate_at(vars(contains('DATE')), ~(as.Date(., '%m/%d/%Y')))
+df <- read.csv('MB2_TOPUP_MOBILE.csv', sep = ",")
+df <- df %>% mutate_at(vars(contains('DATE')), ~(as.Date(., '%Y-%m-%d')))
 cam_date <- as.Date('14/9/2022', '%d/%m/%Y')
 mod_date <- as.Date('1/10/2022', '%d/%m/%Y')
 mod_date_ <- as.Date('1/11/2022', '%d/%m/%Y')
@@ -21,6 +21,11 @@ model2_ls_11 <- read.csv('VIB20_TOPUPv2_POTENTIAL_2022_11.csv')
 model1_ls_11 <- read.csv('VIB20_CLIENT_FILE_FOR_TOPUP_22_11_02.csv')
 model1_ls_10_label0 <- read.csv('CLIENT_FILE_FOR_TOPUP_102022_LABEL0.csv')
 model1_ls_11_label0 <- read.csv('CLIENT_FILE_FOR_TOPUP_112022_LABEL0.csv')
+model1_ls_12 <- read.csv('CLIENT_FILE_FOR_TOPUP_30112022.csv')
+model1_ls_12_label0 <- read.csv('CLIENT_FILE_FOR_TOPUP_30112022_LABEL0.csv')
+model1_ls_1_23 <- read.csv('CLIENT_FILE_FOR_TOPUP_31122022_TO_012023_LABEL1.csv')
+model1_ls_1_23_label0 <- read.csv('CLIENT_FILE_FOR_TOPUP_31122022_TO_012023_LABEL0.csv')
+
 performance <- data.frame(Model = NA,
                             Month = NA,
                           Export = NA,
@@ -33,15 +38,20 @@ performance <- rbind(performance, data.frame(Model = 'Model 1',
                                             Month = 'NOV 2022',
                                             Export = nrow(model1_ls_11),
                                             Match = nrow(inner_join(model1_ls_11, after %>% filter(TRAN_DATE >= mod_date_), on = 'CLIENT_NO') %>% select(CLIENT_NO) %>% unique())))
-                                            
+
+performance <- rbind(performance, data.frame(Model = 'Model 1', 
+                                            Month = 'DEC 2022',
+                                            Export = nrow(model1_ls_12),
+                                            Match = nrow(inner_join(model1_ls_12, after %>% filter(TRAN_DATE >= mod_date_), on = 'CLIENT_NO') %>% select(CLIENT_NO) %>% unique())))
+
 performance <- rbind(performance, data.frame(Model = 'Model 2', 
                                             Month = 'NOV 2022',
                                             Export = nrow(model2_ls_11),
                                             Match = nrow(inner_join(model2_ls_11, after %>% filter(TRAN_DATE >= mod_date_), on = 'CLIENT_NO') %>% select(CLIENT_NO) %>% unique())))
 performance <- na.omit(performance)
 performance <- performance %>% mutate(Precision = Match / Export)
-client_nos <- c(model1_ls_10$CLIENT_NO, model1_ls_11$CLIENT_NO)
-non_client_nos <- na.omit(c(as.numeric(model1_ls_10_label0$CLIENT_NO), as.numeric(model1_ls_11_label0$CLIENT_NO)))
+client_nos <- c(model1_ls_10$CLIENT_NO, model1_ls_11$CLIENT_NO, model1_ls_12$CLIENT_NO)
+non_client_nos <- na.omit(c(as.numeric(model1_ls_10_label0$CLIENT_NO), as.numeric(model1_ls_11_label0$CLIENT_NO), as.numeric(model1_ls_12_label0$CLIENT_NO)))
 both <- c(client_nos, non_client_nos)
 ```
 
@@ -50,12 +60,12 @@ Model performance {.tabset}
 Row
 -----------------------------------------------------------------------
 
-### During campaign
+### Precision 
 
 ```{r}
 y_max <- max(performance %>% select(is.numeric))
 scaleRight <- 100 / y_max
-ggplot(melt(performance %>% filter(Model == 'Model 1') %>% select(-Precision, -Model) %>% mutate(Month = factor(Month, levels = c('OCT 2022', 'NOV 2022')))), aes(x = Month)) +
+ggplot(melt(performance %>% filter(Model == 'Model 1') %>% select(-Precision, -Model) %>% mutate(Month = factor(Month, levels = c('OCT 2022', 'NOV 2022', 'DEC 2022')))), aes(x = Month)) +
     geom_bar(aes(y = value, fill = variable, color = variable),  stat = 'identity', position = "dodge") +
     geom_point(data = performance %>% filter(Model == 'Model 1'), aes( y = Precision * 100 / scaleRight, group = 1, color = 'Precision'), size = 3) +
     geom_line(data = performance %>% filter(Model == 'Model 1'), aes( y = Precision * 100 / scaleRight, group = 1, color = 'Precision'), size = 1) +
@@ -95,10 +105,10 @@ tmp__ <- after %>% filter(CLIENT_NO %in% non_client_nos) %>% mutate(TIME = forma
 p1 <- ggplot() + 
 geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = TF, group = 1, color = 'Before campaign'), size = 1) +
 geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = TF, group = 1, color = 'Before campaign'), size = 5) +
-geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = TF, group = 1, color = 'During campaign-Non-selected'), size = 1) +
-geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = TF, group = 1, color = 'During campaign-Non-selected'), size = 5) +
-geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = TF, group = 1, color = 'During campaign-Selected'), size = 1) +
-geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = TF, group = 1, color = 'During campaign-Selected'), size = 5) +
+geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = TF, group = 1, color = 'Campaign-Non-selected'), size = 1) +
+geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = TF, group = 1, color = 'Campaign-Non-selected'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = TF, group = 1, color = 'Campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = TF, group = 1, color = 'Campaign-Selected'), size = 5) +
 scale_y_continuous(labels = comma) +
 labs(x = 'Month', y = 'Transaction frequency', caption = 'Based on predicted segment only') +
 theme_wsj() +
@@ -125,10 +135,10 @@ tmp__ <-after %>% filter(CLIENT_NO %in% non_client_nos) %>%
 p2 <- ggplot() + 
 geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 1) +
 geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 5) +
-geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Non-selected'), size = 1) +
-geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Non-selected'), size = 5) +
-geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 1) +
-geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 5) +
+geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Non-selected'), size = 1) +
+geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Non-selected'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Selected'), size = 5) +
 labs(x = 'Month', y = 'Average transaction frequency') +
 theme_wsj() +
 scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
@@ -168,10 +178,10 @@ tmp__ <-after %>% filter(CLIENT_NO %in% non_client_nos) %>% mutate(TIME = format
 p3 <- ggplot() + 
 geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = DIFF, group = 1, color = 'Before campaign'), size = 1) +
 geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = DIFF, group = 1, color = 'Before campaign'), size = 5) +
-geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = DIFF, group = 1, color = 'During campaign-Non-selected'), size = 1) +
-geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = DIFF, group = 1, color = 'During campaign-Non-selected'), size = 5) +
-geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = DIFF, group = 1, color = 'During campaign-Selected'), size = 1) +
-geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = DIFF, group = 1, color = 'During campaign-Selected'), size = 5) +
+geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = DIFF, group = 1, color = 'Campaign-Non-selected'), size = 1) +
+geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = DIFF, group = 1, color = 'Campaign-Non-selected'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = DIFF, group = 1, color = 'Campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = DIFF, group = 1, color = 'Campaign-Selected'), size = 5) +
 labs(x = 'Month', y = 'Average elapse (days)') +
 theme_wsj() +
 scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
@@ -215,10 +225,10 @@ tmp__ <-after %>% filter(CLIENT_NO %in% non_client_nos) %>% mutate(TIME = format
 p4 <- ggplot() + 
 geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ADif, group = 1, color = 'Before campaign'), size = 1) +
 geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ADif, group = 1, color = 'Before campaign'), size = 5) +
-geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ADif, group = 1, color = 'During campaign-Non-selected'), size = 1) +
-geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ADif, group = 1, color = 'During campaign-Non-selected'), size = 5) +
-geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ADif, group = 1, color = 'During campaign-Selected'), size = 1) +
-geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ADif, group = 1, color = 'During campaign-Selected'), size = 5) +
+geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ADif, group = 1, color = 'Campaign-Non-selected'), size = 1) +
+geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ADif, group = 1, color = 'Campaign-Non-selected'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ADif, group = 1, color = 'Campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ADif, group = 1, color = 'Campaign-Selected'), size = 5) +
 labs(x = 'Month', y = 'Average elapse per cust (days)') +
 theme_wsj() +
 scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
@@ -248,10 +258,10 @@ tmp__ <-after %>% filter(CLIENT_NO %in% non_client_nos) %>% mutate(TIME = format
 ggplot() + 
 geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 1) +
 geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 5) +
-geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Non-selected'), size = 1) +
-geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Non-selected'), size = 5) +
-geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 1) +
-geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 5) +
+geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Non-selected'), size = 1) +
+geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Non-selected'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Selected'), size = 5) +
 labs(x = 'Month', y = 'Topup amount (B)') +
 theme_wsj() +
 scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
@@ -274,10 +284,10 @@ tmp__ <-after %>% filter(CLIENT_NO %in% non_client_nos) %>% mutate(TIME = format
 ggplot() + 
 geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 1) +
 geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = ATF, group = 1, color = 'Before campaign'), size = 5) +
-geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Non-selected'), size = 1) +
-geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Non-selected'), size = 5) +
-geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 1) +
-geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = ATF, group = 1, color = 'During campaign-Selected'), size = 5) +
+geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Non-selected'), size = 1) +
+geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Non-selected'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = ATF, group = 1, color = 'Campaign-Selected'), size = 5) +
 labs(x = 'Month', y = 'Average Topup amount per cust (K)') +
 theme_wsj() +
 scale_color_manual(values = c('#FFC074','#B6C867','#01937C')) + 
@@ -307,10 +317,10 @@ tmp__ <-after %>% filter(CLIENT_NO %in% non_client_nos) %>% mutate(TIME = format
 ggplot() + 
 geom_line(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = WR, group = 1, color = 'Before campaign'), size = 1) +
 geom_point(data = tmp %>% filter(TIME %in% c('2022-07','2022-08','2022-09')), aes(x = TIME, y = WR, group = 1, color = 'Before campaign'), size = 5) +
-geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = WR, group = 1, color = 'During campaign-Non-selected'), size = 1) +
-geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = WR, group = 1, color = 'During campaign-Non-selected'), size = 5) +
-geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = WR, group = 1, color = 'During campaign-Selected'), size = 1) +
-geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11')), aes(x = TIME, y = WR, group = 1, color = 'During campaign-Selected'), size = 5) +
+geom_line(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = WR, group = 1, color = 'Campaign-Non-selected'), size = 1) +
+geom_point(data = tmp__ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = WR, group = 1, color = 'Campaign-Non-selected'), size = 5) +
+geom_line(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = WR, group = 1, color = 'Campaign-Selected'), size = 1) +
+geom_point(data = tmp_ %>% filter(TIME %in% c('2022-09','2022-10','2022-11', '2022-12')), aes(x = TIME, y = WR, group = 1, color = 'Campaign-Selected'), size = 5) +
 labs(x = 'Month', y = 'Wonback ratio') +
 theme_wsj() +
 scale_color_manual(values = c('#FFC074','#B6C867','#01937C','black')) + 
